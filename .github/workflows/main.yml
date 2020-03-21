@@ -56,4 +56,4 @@ jobs:
         kubectl apply -f k8s
         kubectl set image deployments/server-deployment server=dorakueyon/multi-server:$SHA
         kubectl set image deployments/client-deployment client=dorakueyon/multi-client:$SHA
-        kubectl set image deployments/worker-deployment client=dorakueyon/multi-worker:$SHA
+        kubectl set image deployments/worker-deployment worker=dorakueyon/multi-worker:$SHA
