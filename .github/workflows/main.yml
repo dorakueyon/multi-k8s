@@ -42,6 +42,8 @@ jobs:
     needs: build
 
     steps:
+    - uses: actions/checkout@master
+
     - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       with:
         version: '270.0.0'
@@ -51,8 +53,6 @@ jobs:
       run: |
         gcloud container clusters get-credentials multi-cluster \
           --zone asia-northeast1-a --project $gke_project
-        ls
-        pwd
         kubectl apply -f k8s
         kubectl set image deployments/server-deployment server=dorakueyon/multi-server:$SHA
         kubectl set image deployments/client-deployment client=dorakueyon/multi-client:$SHA
