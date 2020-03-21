@@ -7,6 +7,10 @@ on:
   pull_request:
     branches: [ master ]
 
+env:
+  GKE_PROJECT: ${{ secrets.GKE_PROJECT }}
+  SHA: ${{ github.sha }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,8 +18,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build image
-      env:
-        SHA: ${{ github.sha }}
       run: |
         echo $SHA
         docker build -t dorakueyon/multi-client:latest -t dorakueyon/multi-client:$SHA -f ./client/Dockerfile ./client
@@ -27,8 +29,6 @@ jobs:
         DOCKERHUB_PASS: ${{ secrets.dockerhub_pass }}
       run: docker login -u $DOCKERHUB_USER -p $DOCKERHUB_PASS
     - name: push image
-      env:
-        SHA: ${{ github.sha }}
       run: |
         docker push dorakueyon/multi-client:latest
         docker push dorakueyon/multi-server:latest
@@ -36,3 +36,22 @@ jobs:
         docker push dorakueyon/multi-client:$SHA
         docker push dorakueyon/multi-server:$SHA
         docker push dorakueyon/multi-worker:$SHA
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        version: '270.0.0'
+        service_account_email: ${{ secrets.SA_EMAIL }}
+        service_account_key: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+    - name: Deploy
+      run: |
+        gcloud container clusters get-credentials multi-cluster \
+          --zone asia-northeast1-a --project $gke_project
+        kubectl apply -f k8s
+        kubectl set image deployments/server-deployment server=dorakueyon/multi-server:$SHA
+        kubectl set image deployments/client-deployment client=dorakueyon/multi-client:$SHA
+        kubectl set image deployments/worker-deployment client=dorakueyon/multi-worker:$SHA
